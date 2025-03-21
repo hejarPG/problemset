@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مخزن مسائل</title>
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.rtl.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true
+            },
+            options: {
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            },
+            startup: {
+                ready: function() {
+                    MathJax.startup.defaultReady();
+                    // Make an initial call to typeset when MathJax is loaded
+                    MathJax.startup.promise.then(() => {
+                        console.log("MathJax initial typesetting completed");
+                    });
+                }
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <!-- Persian Font -->
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #212529;
+            --card-bg: #ffffff;
+            --border-color: rgba(0, 0, 0, 0.125);
+            --badge-bg: #f8f9fa;
+            --badge-text: #212529;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --text-color: #e9ecef;
+            --card-bg: #2d2d2d;
+            --border-color: #404040;
+            --badge-bg: #404040;
+            --badge-text: #e9ecef;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+            font-family: 'Vazirmatn', Tahoma, Arial, sans-serif;
+            text-align: right;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-color: var(--border-color);
+        }
+
+        .badge {
+            background-color: var(--badge-bg);
+            color: var(--badge-text);
+        }
+
+        .modal-content {
+            background-color: var(--card-bg);
+            color: var(--text-color);
+        }
+
+        .alert-info {
+            background-color: #2d3a4a;
+            border-color: #2d3a4a;
+            color: #e9ecef;
+        }
+
+        .btn-secondary {
+            background-color: #404040;
+            border-color: #404040;
+        }
+
+        /* Add theme toggle button styling */
+        .theme-toggle {
+            position: static;
+            margin-left: 15px;
+        }
+
+        .problem-card {
+            margin-bottom: 15px;
+            border-radius: 6px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .problem-card .card-body {
+            padding: 12px;
+        }
+        .problem-card .badge {
+            font-size: 0.7rem;
+            padding: 0.25em 0.5em;
+        }
+        .problem-card .tags {
+            margin-bottom: 0.5rem;
+        }
+        .problem-card .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+        .chapter-heading {
+            margin-top: 30px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+        .tag-badge {
+            margin-left: 5px;
+            margin-right: 0;
+            cursor: pointer;
+        }
+        #searchContainer {
+            margin-bottom: 30px;
+        }
+        .card-text-truncate {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            height: 4.5em; /* Approximately 3 lines of text */
+        }
+        /* Fix RTL direction for modal button */
+        .modal-header .btn-close {
+            margin: -0.5rem auto -0.5rem -0.5rem;
+        }
+        .problem-preview {
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 0.5rem;
+            height: 1.5em;
+            font-size: 0.95rem;
+        }
+        /* Adjust grid for more compact layout */
+        @media (min-width: 992px) {
+            .problem-card-col {
+                padding-left: 7px;
+                padding-right: 7px;
+            }
+        }
+        .keyboard-shortcut-badge {
+            background-color: var(--badge-bg) !important;
+            color: var(--badge-text) !important;
+            border: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="text-center mb-0">مخزن مسائل</h1>
+            <button class="btn btn-secondary theme-toggle" id="themeToggle">
+                حالت شب
+            </button>
+        </div>
+        
+        <div id="searchContainer" class="row">
+            <div class="col-md-8">
+                <input type="text" id="searchInput" class="form-control" placeholder="جستجوی مسائل...">
+            </div>
+            <div class="col-md-4">
+                <select id="tagFilter" class="form-select">
+                    <option value="">همه برچسب‌ها</option>
+                </select>
+            </div>
+        </div>
+        
+        <div id="chaptersContainer" class="row"></div>
+    </div>
+
+    <!-- Problem Modal -->
+    <div class="modal fade" id="problemModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">مسئله</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="problemContent"></div>
+                    <hr>
+                    <h5>راه حل</h5>
+                    <div id="solutionContent"></div>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-outline-primary" id="prevProblemBtn">
+                        <i class="bi bi-arrow-right"></i> مسئله قبلی
+                    </button>
+                    <button type="button" class="btn btn-outline-primary" id="nextProblemBtn">
+                        مسئله بعدی <i class="bi bi-arrow-left"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API base URL
+        const API_BASE_URL = '/api';
+        let allProblems = [];
+        let allTags = [];
+        let activeChapter = null;
+        
+        // Add these variables to track current problem position
+        let currentProblemIndex = -1;
+        let currentProblems = [];
+        
+        // Create a single modal instance we can reuse
+        let problemModal;
+        
+        // Add these variables to track navigation state
+        let isNavigatingBack = false;
+        
+        // Change the initial solution visibility state to false
+        let isSolutionVisible = false;
+        
+        // Fetch all chapters
+        async function fetchChapters() {
+            try {
+                // Add to browser history if this isn't a back navigation
+                if (!isNavigatingBack) {
+                    const state = { type: 'chapters' };
+                    history.pushState(state, '', '?');
+                }
+                // Reset the flag
+                isNavigatingBack = false;
+                
+                // Fetch and render chapters
+                const response = await axios.get(`${API_BASE_URL}/chapters/`);
+                const chapters = response.data.results || response.data;
+                
+                // Store for reference
+                window.allChapters = chapters;
+                
+                const chaptersContainer = document.getElementById('chaptersContainer');
+                chaptersContainer.innerHTML = '';
+                
+                // Render chapter cards
+                chapters.forEach(chapter => {
+                    const chapterCard = document.createElement('div');
+                    chapterCard.className = 'col-md-4 mb-4';
+                    
+                    chapterCard.innerHTML = `
+                        <div class="card h-100 chapter-card" data-chapter-id="${chapter.id}">
+                            <div class="card-body">
+                                <h4 class="card-title">${chapter.title}</h4>
+                                <p class="card-text card-text-truncate">${truncateText(chapter.description, 120)}</p>
+                                <button class="btn btn-primary view-chapter-problems">مشاهده مسائل</button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    chaptersContainer.appendChild(chapterCard);
+                });
+                
+                // Store all problems for searching
+                allProblems = [];
+                chapters.forEach(chapter => {
+                    if (chapter.problems && chapter.problems.length > 0) {
+                        allProblems = [...allProblems, ...chapter.problems];
+                    }
+                });
+                
+                // Add event listeners to chapter buttons
+                document.querySelectorAll('.view-chapter-problems').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const chapterId = event.target.closest('.chapter-card').getAttribute('data-chapter-id');
+                        showChapterProblems(chapters.find(ch => ch.id.toString() === chapterId));
+                    });
+                });
+                
+            } catch (error) {
+                console.error('Error fetching chapters:', error);
+            }
+        }
+        
+        // Show problems for a specific chapter
+        function showChapterProblems(chapter) {
+            activeChapter = chapter;
+            currentProblems = chapter.problems || [];
+            
+            // Add to browser history if this isn't a back navigation
+            if (!isNavigatingBack) {
+                const state = { 
+                    type: 'chapter',
+                    chapterId: chapter.id
+                };
+                // Add current view to history with a unique URL
+                history.pushState(state, '', `?chapter=${chapter.id}`);
+            }
+            // Reset the flag
+            isNavigatingBack = false;
+            
+            // Render the chapter UI
+            const chaptersContainer = document.getElementById('chaptersContainer');
+            chaptersContainer.innerHTML = '';
+            
+            // Add back button
+            const backButton = document.createElement('div');
+            backButton.className = 'col-12 mb-4';
+            backButton.innerHTML = `
+                <button class="btn btn-secondary" id="backToChapters">
+                    بازگشت به فصل‌ها
+                </button>
+                <h2 class="mt-3 chapter-heading">${chapter.title}</h2>
+                <p>${chapter.description}</p>
+            `;
+            chaptersContainer.appendChild(backButton);
+            
+            // Add problems container
+            const problemsContainer = document.createElement('div');
+            problemsContainer.className = 'row' ;
+            problemsContainer.id = 'problems-container';
+            chaptersContainer.appendChild(problemsContainer);
+            
+            // Render problems
+            if (chapter.problems && chapter.problems.length > 0) {
+                renderProblems(chapter.problems, 'problems-container');
+            } else {
+                problemsContainer.innerHTML = '<div class="col-12"><div class="alert alert-info">هیچ مسئله‌ای برای این فصل وجود ندارد.</div></div>';
+            }
+            
+            // Add event listener to back button
+            document.getElementById('backToChapters').addEventListener('click', (event) => {
+                // Use browser history instead of custom navigation
+                history.back();
+            });
+            
+            // Replace the direct MathJax call with our improved function
+            renderMathJax();
+        }
+        
+        // Filter problems
+        function filterProblems() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const selectedTagId = document.getElementById('tagFilter').value;
+            
+            // If we're viewing a specific chapter, only filter within that chapter
+            let problemsToFilter = activeChapter ? activeChapter.problems : allProblems;
+            let filteredProblems = problemsToFilter;
+            
+            // Filter by search term
+            if (searchTerm) {
+                filteredProblems = filteredProblems.filter(problem => 
+                    problem.title.toLowerCase().includes(searchTerm) || 
+                    problem.statement.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            // Filter by tag
+            if (selectedTagId) {
+                filteredProblems = filteredProblems.filter(problem => 
+                    problem.tags.some(tag => tag.id.toString() === selectedTagId)
+                );
+            }
+            
+            // If we're in chapter view, update the problems display
+            if (activeChapter) {
+                const problemsContainer = document.getElementById('problems-container');
+                if (filteredProblems.length > 0) {
+                    renderProblems(filteredProblems, 'problems-container');
+                } else {
+                    problemsContainer.innerHTML = '<div class="col-12"><div class="alert alert-info">هیچ مسئله‌ای با معیارهای جستجوی شما مطابقت ندارد.</div></div>';
+                }
+            }
+            // If we're in chapter list view and there are search filters, switch to showing matching problems
+            else if (searchTerm || selectedTagId) {
+                // Group by chapter for display
+                const problemsByChapter = {};
+                filteredProblems.forEach(problem => {
+                    if (!problemsByChapter[problem.chapter]) {
+                        problemsByChapter[problem.chapter] = [];
+                    }
+                    problemsByChapter[problem.chapter].push(problem);
+                });
+                
+                const chaptersContainer = document.getElementById('chaptersContainer');
+                chaptersContainer.innerHTML = '';
+                
+                // Add back button
+                const backButton = document.createElement('div');
+                backButton.className = 'col-12 mb-4';
+                backButton.innerHTML = `
+                    <button class="btn btn-secondary" id="backToChapters">
+                        بازگشت به فصل‌ها
+                    </button>
+                    <h2 class="mt-3">نتایج جستجو</h2>
+                `;
+                chaptersContainer.appendChild(backButton);
+                
+                // Add event listener to back button
+                document.getElementById('backToChapters').addEventListener('click', async () => {
+                    activeChapter = null;
+                    await fetchChapters();
+                });
+                
+                // Show problems grouped by chapter
+                Object.keys(problemsByChapter).forEach(chapterId => {
+                    const chapterProblems = problemsByChapter[chapterId];
+                    
+                    // Find chapter info
+                    const chapter = allChapters.find(ch => ch.id.toString() === chapterId);
+                    
+                    if (chapter) {
+                        const chapterSection = document.createElement('div');
+                        chapterSection.className = 'col-12 mb-4';
+                        chapterSection.innerHTML = `
+                            <h3 class="mt-4">${chapter.title}</h3>
+                            <div class="row" id="search-chapter-${chapterId}"></div>
+                        `;
+                        chaptersContainer.appendChild(chapterSection);
+                        
+                        renderProblems(chapterProblems, `search-chapter-${chapterId}`);
+                    }
+                });
+            }
+            
+            // Replace the direct MathJax call with our improved function
+            renderMathJax();
+        }
+        
+        // Update renderProblems function to use CSS-only truncation
+        function renderProblems(problems, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            problems.forEach((problem, index) => {
+                const problemCard = document.createElement('div');
+                problemCard.className = 'col-md-6 col-lg-4 problem-card-col';
+                
+                const difficultyLabels = ['', 'آسان', 'متوسط', 'سخت'];
+                const difficultyClasses = ['', 'success', 'warning', 'danger'];
+                
+                let tagsHtml = '';
+                if (problem.tags && problem.tags.length > 0) {
+                    // Limit to max 2 tags for compact display
+                    const displayTags = problem.tags.slice(0, 2);
+                    tagsHtml = displayTags.map(tag => 
+                        `<span class="badge bg-primary tag-badge" data-tag-id="${tag.id}">${tag.name}</span>`
+                    ).join(' ');
+                    
+                    // Add +N more indicator if there are more tags
+                    if (problem.tags.length > 2) {
+                        tagsHtml += ` <span class="badge bg-secondary">+${problem.tags.length - 2}</span>`;
+                    }
+                }
+                
+                // Use the full statement without manual cutting
+                const preview = problem.statement;
+                
+                problemCard.innerHTML = `
+                    <div class="card problem-card">
+                        <div class="card-body">
+                            <div class="problem-preview">${preview}</div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="badge bg-${difficultyClasses[problem.difficulty]}">
+                                        ${difficultyLabels[problem.difficulty]}
+                                    </span>
+                                    <span class="tags">${tagsHtml}</span>
+                                </div>
+                                <button class="btn btn-sm btn-primary view-problem" data-problem-id="${problem.id}" data-problem-index="${index}">
+                                    مشاهده
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(problemCard);
+            });
+            
+            // Add event listeners and call MathJax rendering
+            document.querySelectorAll('.view-problem').forEach(button => {
+                button.addEventListener('click', async (event) => {
+                    const problemId = event.target.getAttribute('data-problem-id');
+                    const problemIndex = parseInt(event.target.getAttribute('data-problem-index'));
+                    currentProblemIndex = problemIndex;
+                    currentProblems = problems;
+                    await showProblemModal(problemId);
+                });
+            });
+            
+            // Add event listeners to tag badges
+            document.querySelectorAll('.tag-badge').forEach(badge => {
+                badge.addEventListener('click', (event) => {
+                    const tagId = event.target.getAttribute('data-tag-id');
+                    document.getElementById('tagFilter').value = tagId;
+                    filterProblems();
+                });
+            });
+            
+            // Process LaTeX in the previews
+            renderMathJax();
+        }
+        
+        // Add this function to handle keyboard navigation
+        function setupKeyboardNavigation() {
+            // Remove any existing listeners first to avoid duplicates
+            document.removeEventListener('keydown', handleKeyNavigation);
+            
+            // Add the keyboard event listener
+            document.addEventListener('keydown', handleKeyNavigation);
+        }
+        
+        // Enhanced function to handle keyboard navigation events - simplified
+        function handleKeyNavigation(event) {
+            // Only proceed if the problem modal is visible
+            if (!document.getElementById('problemModal').classList.contains('show')) {
+                return;
+            }
+            
+            // Don't handle keyboard shortcuts if user is typing in an input field
+            if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+                return;
+            }
+            
+            // Handle arrow keys - note the reversal due to RTL layout
+            if (event.key === 'ArrowRight') {
+                // Right arrow goes to previous problem in RTL
+                if (!document.getElementById('prevProblemBtn').disabled) {
+                    navigateToPrevProblem();
+                }
+            } else if (event.key === 'ArrowLeft') {
+                // Left arrow goes to next problem in RTL
+                if (!document.getElementById('nextProblemBtn').disabled) {
+                    navigateToNextProblem();
+                }
+            } 
+            // S key to toggle solution visibility
+            else if (event.key.toLowerCase() === 's') {
+                toggleSolutionVisibility();
+            }
+            // ESC key to close modal (Bootstrap already handles this, but added for completeness)
+            else if (event.key === 'Escape') {
+                problemModal.hide();
+            }
+        }
+        
+        // Function to toggle solution visibility
+        function toggleSolutionVisibility() {
+            const solutionHeader = document.querySelector('.modal-body h5');
+            const solutionContent = document.getElementById('solutionContent');
+            
+            if (isSolutionVisible) {
+                // Hide solution
+                solutionContent.style.display = 'none';
+                solutionHeader.style.display = 'none';
+                isSolutionVisible = false;
+            } else {
+                // Show solution
+                solutionContent.style.display = 'block';
+                solutionHeader.style.display = 'block';
+                isSolutionVisible = true;
+            }
+        }
+        
+        // Update showProblemModal to hide solution by default
+        async function showProblemModal(problemId) {
+            try {
+                // Set solution visibility to hidden by default for new problems
+                isSolutionVisible = false;
+                
+                const problemResponse = await axios.get(`${API_BASE_URL}/problems/${problemId}/`);
+                const problem = problemResponse.data;
+                
+                const problemContent = document.getElementById('problemContent');
+                problemContent.innerHTML = `
+                    <div class="problem-statement">${problem.statement}</div>
+                `;
+                
+                // Fetch solution
+                try {
+                    const solutionResponse = await axios.get(`${API_BASE_URL}/problems/${problemId}/solution/`);
+                    const solution = solutionResponse.data;
+                    
+                    const solutionContent = document.getElementById('solutionContent');
+                    solutionContent.innerHTML = solution.content;
+                    
+                    // Hide solution content and header initially
+                    solutionContent.style.display = 'none';
+                    document.querySelector('.modal-body h5').style.display = 'none';
+                    
+                } catch (error) {
+                    document.getElementById('solutionContent').innerHTML = 
+                        '<div class="alert alert-info">راه حلی موجود نیست</div>';
+                    // Even if there's no solution, ensure it's hidden
+                    document.getElementById('solutionContent').style.display = 'none';
+                    document.querySelector('.modal-body h5').style.display = 'none';
+                }
+                
+                // Initialize the modal if it doesn't exist yet
+                if (!problemModal) {
+                    problemModal = new bootstrap.Modal(document.getElementById('problemModal'));
+                    
+                    // Add event listener for when modal is shown
+                    document.getElementById('problemModal').addEventListener('shown.bs.modal', function () {
+                        setupKeyboardNavigation();
+                    });
+                    
+                    problemModal.show();
+                } else if (document.getElementById('problemModal').classList.contains('show')) {
+                    // If modal is already open, just update content
+                    // Make sure keyboard navigation is set up
+                    setupKeyboardNavigation();
+                } else {
+                    // If modal exists but is closed, show it
+                    problemModal.show();
+                }
+                
+                // Update prev/next button states
+                updateNavigationButtons();
+                
+                // Give the modal time to fully render, then process math
+                setTimeout(() => {
+                    renderMathJax();
+                }, 100);
+                
+                // Update keyboard shortcut hint to indicate the solution is hidden by default
+                const footer = document.querySelector('.modal-footer');
+                const keyboardHint = document.createElement('div');
+                keyboardHint.className = 'keyboard-shortcuts-hint text-muted small';
+                keyboardHint.innerHTML = 'کلیدهای میانبر: ' +
+                    '<span class="keyboard-shortcut-badge">→←</span> مسئله قبلی/بعدی، ' +
+                    '<span class="keyboard-shortcut-badge">S</span> نمایش/مخفی کردن راه حل';
+                keyboardHint.style.width = '100%';
+                keyboardHint.style.textAlign = 'center';
+                keyboardHint.style.marginBottom = '10px';
+                
+                // Remove any existing hint before adding a new one
+                const existingHint = document.querySelector('.keyboard-shortcuts-hint');
+                if (existingHint) {
+                    existingHint.remove();
+                }
+                
+                // Insert hint before the navigation buttons
+                footer.insertBefore(keyboardHint, footer.firstChild);
+            } catch (error) {
+                console.error('Error fetching problem:', error);
+            }
+        }
+        
+        // Fetch all tags
+        async function fetchTags() {
+            try {
+                const response = await axios.get(`${API_BASE_URL}/tags/`);
+                allTags = response.data.results || response.data;
+                
+                const tagFilter = document.getElementById('tagFilter');
+                allTags.forEach(tag => {
+                    const option = document.createElement('option');
+                    option.value = tag.id;
+                    option.textContent = tag.name;
+                    tagFilter.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error fetching tags:', error);
+            }
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            await fetchTags();
+            
+            // Handle browser back/forward buttons
+            window.addEventListener('popstate', function(event) {
+                isNavigatingBack = true;
+                
+                if (event.state) {
+                    // If coming back to a chapter view
+                    if (event.state.type === 'chapter') {
+                        const chapter = window.allChapters.find(ch => ch.id === event.state.chapterId);
+                        if (chapter) {
+                            showChapterProblems(chapter);
+                        } else {
+                            fetchChapters(); // Fallback to main view
+                        }
+                    } 
+                    // If coming back to main chapters view
+                    else if (event.state.type === 'chapters') {
+                        fetchChapters();
+                    }
+                } else {
+                    // Default to chapters view if no state
+                    fetchChapters();
+                }
+            });
+            
+            // Set initial state and load chapters
+            const initialState = { type: 'chapters' };
+            history.replaceState(initialState, '', '?');
+            await fetchChapters();
+            
+            // Add event listeners for search and filter
+            document.getElementById('searchInput').addEventListener('input', filterProblems);
+            document.getElementById('tagFilter').addEventListener('change', filterProblems);
+            
+            // Ensure MathJax processes everything on initial load
+            renderMathJax();
+            
+            // Add event listeners for navigation buttons
+            document.getElementById('prevProblemBtn').addEventListener('click', navigateToPrevProblem);
+            document.getElementById('nextProblemBtn').addEventListener('click', navigateToNextProblem);
+
+            // Add theme toggle functionality
+            initializeTheme();
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+        });
+
+        function truncateText(text, maxLength) {
+            if (text.length <= maxLength) return text;
+            return text.substring(0, maxLength) + '...';
+        }
+
+        // Improved function to ensure MathJax renders properly
+        function renderMathJax() {
+            if (window.MathJax) {
+                try {
+                    console.log("Triggering MathJax typesetting");
+                    window.MathJax.typeset();
+                } catch (e) {
+                    console.error("MathJax typesetting error:", e);
+                }
+            } else {
+                console.warn("MathJax not loaded yet");
+                // Try again after a short delay if MathJax isn't loaded yet
+                setTimeout(renderMathJax, 1000);
+            }
+        }
+
+        // Add function to update navigation button states
+        function updateNavigationButtons() {
+            const prevBtn = document.getElementById('prevProblemBtn');
+            const nextBtn = document.getElementById('nextProblemBtn');
+            
+            // Handle prev button
+            if (currentProblemIndex > 0) {
+                prevBtn.disabled = false;
+                prevBtn.classList.remove('disabled');
+            } else {
+                prevBtn.disabled = true;
+                prevBtn.classList.add('disabled');
+            }
+            
+            // Handle next button
+            if (currentProblemIndex < currentProblems.length - 1) {
+                nextBtn.disabled = false;
+                nextBtn.classList.remove('disabled');
+            } else {
+                nextBtn.disabled = true;
+                nextBtn.classList.add('disabled');
+            }
+        }
+
+        // Add functions to navigate between problems
+        function navigateToPrevProblem() {
+            if (currentProblemIndex > 0) {
+                currentProblemIndex--;
+                showProblemModal(currentProblems[currentProblemIndex].id);
+            }
+        }
+        
+        function navigateToNextProblem() {
+            if (currentProblemIndex < currentProblems.length - 1) {
+                currentProblemIndex++;
+                showProblemModal(currentProblems[currentProblemIndex].id);
+            }
+        }
+
+        // Add theme toggle functionality
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            const isSystemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const initialTheme = savedTheme === 'system' ? (isSystemDark ? 'dark' : 'light') : savedTheme;
+            
+            document.documentElement.setAttribute('data-theme', initialTheme);
+            updateThemeButton(initialTheme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeButton(newTheme);
+        }
+
+        function updateThemeButton(theme) {
+            const themeButton = document.getElementById('themeToggle');
+            themeButton.textContent = theme === 'dark' ? 'حالت روز' : 'حالت شب';
+        }
+    </script>
+</body>
+</html> 
